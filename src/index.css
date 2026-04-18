@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Override for web3/crypto theme with Neon Green */
+  --accent:       #9eff00;      /* Neon lime */
+  --accent-2:     #00d4ff;      /* Cyan */
+  --accent-glow:  #9eff0025;
+  --accent-glow-lg: #9eff0018;
+  --bg-base:      #080808;
+  --bg-surface:   #111111;
+  --bg-elevated:  #222222;
+  
+  --bg-overlay:     #1c1c28;
+
+  /* === BORDERS === */
+  --border-subtle:  #222222;
+  --border-default: #333333;
+  --border-active:  #9eff0066;
+  --border-focus:   #9eff00aa;
+
+  /* === TEXT === */
+  --text-primary:   #ffffff;
+  --text-secondary: #aaaaaa;
+  --text-muted:     #888888;
+  --text-faint:     #555555;
+
+  /* === STATUS === */
+  --success:        #4ade80;
+  --success-dim:    #4ade8020;
+  --warning:        #facc15;
+  --warning-dim:    #facc1520;
+  --error:          #f87171;
+  --error-dim:      #f8717120;
+  --info:           #60a5fa;
+  --info-dim:       #60a5fa20;
+
+  /* === SIZING === */
+  --radius-sm:      6px;
+  --radius-md:      12px;
+  --radius-lg:      18px;
+  --radius-xl:      24px;
+  --radius-full:    9999px;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Animations */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-in       { animation: fadeSlideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-down     { animation: fadeSlideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade     { animation: fadeIn 0.5s ease both; }
+.animate-scale    { animation: scaleIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+.stagger > *:nth-child(6) { animation-delay: 400ms; }
+
+/* Micro-interactions */
+.btn-base {
+  position: relative; overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-base::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  opacity: 0; transition: opacity 0.2s;
+}
+.btn-base:hover::before { opacity: 1; }
+.btn-base:hover         { transform: translateY(-2px); box-shadow: 0 10px 40px var(--accent-glow); }
+.btn-base:active        { transform: scale(0.97) translateY(0); }
+
+.card-base {
+  border: 1px solid var(--border-subtle);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-base:hover {
+  border-color: var(--border-active);
+  transform: translateY(-6px);
+  box-shadow: 0 32px 80px var(--accent-glow);
+}
+
+.input-base {
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  background: var(--bg-surface);
+}
+.input-base:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  outline: none;
+  background: var(--bg-elevated);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 50%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-2 {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-pulse { animation: glowPulse 2.5s ease-in-out infinite; }
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
+  50%       { box-shadow: 0 0 50px var(--accent), 0 0 80px var(--accent-glow); }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.border-glow {
+  position: relative;
+}
+.border-glow::before {
+  content: ''; position: absolute; inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--border-angle), transparent 0%, var(--accent) 20%, transparent 40%);
+  animation: borderSpin 3s linear infinite;
+  z-index: -1;
+}
+@keyframes borderSpin { 
+  to { --border-angle: 360deg; } 
+}
+
+/* Ambient background types */
+.bg-mesh {
+  background:
+    radial-gradient(ellipse 80% 80% at 20% -20%, var(--accent-glow-lg) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 80% 110%, #00d4ff15 0%, transparent 60%),
+    var(--bg-base);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+  background-size: 52px 52px;
+  animation: gridPan 25s linear infinite;
+}
+@keyframes gridPan {
+  to { background-position: 52px 52px; }
+}
+
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(90px); pointer-events: none;
+  animation: orbFloat 10s ease-in-out infinite;
+}
+.orb-1 { width: 600px; height: 600px; background: var(--accent-glow-lg); top: -200px; left: -150px; }
+.orb-2 { width: 400px; height: 400px; background: #00d4ff15; bottom: -100px; right: -100px; animation-delay: -5s; }
+.orb-3 { width: 300px; height: 300px; background: #9eff0015; top: 40%; left: 50%; animation-delay: -2s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(40px, -50px) scale(1.08); }
+  66%       { transform: translate(-30px, 25px) scale(0.93); }
+}
