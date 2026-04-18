@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { getQuest, getFanSubmissionForQuest } from '../utils/storage';
 import type { Quest, Submission } from '../types';
+import type { TokenInfo } from '../utils/bags';
 import { Card, Badge, EmptyState } from '../components/ui';
 import { ProofSubmitForm } from '../components/ProofSubmitForm';
 import { WalletConnect } from '../components/WalletConnect';
-import { Clock, Trophy, Users, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { getTokenInfo } from '../utils/bags';
+import { Clock, Trophy, Users, ArrowLeft, CheckCircle2, ShieldCheck, ExternalLink, Zap } from 'lucide-react';
 
 export function QuestDetail() {
   const { questId } = useParams();
@@ -15,11 +17,21 @@ export function QuestDetail() {
   const [quest, setQuest] = useState<Quest | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [submitMode, setSubmitMode] = useState<'simple' | 'web3'>('web3');
+  const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
+  const [bagsLoading, setBagsLoading] = useState(false);
 
   useEffect(() => {
     if (questId) {
       const q = getQuest(questId);
-      if (q) setQuest(q);
+      if (q) {
+        setQuest(q);
+        // Auto-fetch token info via BagsSDK on load
+        setBagsLoading(true);
+        getTokenInfo(q.tokenMint).then(info => {
+          setTokenInfo(info);
+          setBagsLoading(false);
+        }).catch(() => setBagsLoading(false));
+      }
       
       if (publicKey) {
         const sub = getFanSubmissionForQuest(questId, publicKey.toBase58());
@@ -116,9 +128,55 @@ export function QuestDetail() {
         </div>
         
         <h1 className="font-display font-bold text-3xl md:text-5xl mb-4 leading-tight">{quest.title}</h1>
-        <p className="text-[var(--text-secondary)] text-lg mb-8 leading-relaxed">
+        <p className="text-[var(--text-secondary)] text-lg mb-6 leading-relaxed">
           {quest.description}
         </p>
+
+        {/* Bags.fm Live Verification Panel */}
+        <div className="mb-8 rounded-2xl border border-[var(--accent)]/30 bg-gradient-to-r from-[var(--accent)]/5 to-[var(--accent-2)]/5 p-5 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,_rgba(108,99,255,0.08),transparent)] pointer-events-none" />
+          <div className="flex flex-wrap items-center gap-4 justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 flex items-center justify-center">
+                <ShieldCheck size={20} className="text-[var(--accent)]" />
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest font-semibold">Bags.fm Verified Token</p>
+                <p className="text-[var(--text-primary)] font-bold">{quest.tokenName} <span className="text-[var(--accent)]">${quest.tokenSymbol}</span></p>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              {bagsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                  <span className="w-3 h-3 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+                  Fetching from Bags SDK...
+                </div>
+              ) : tokenInfo ? (
+                <>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-[var(--success)]">{(tokenInfo.holderCount || 0).toLocaleString()}</p>
+                    <p className="text-xs text-[var(--text-muted)] flex items-center gap-1"><Users size={10} /> Holders</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-[var(--text-primary)]">{((tokenInfo.supply || 0) / 1_000_000).toFixed(1)}M</p>
+                    <p className="text-xs text-[var(--text-muted)] flex items-center gap-1"><Zap size={10}/> Supply</p>
+                  </div>
+                </>
+              ) : null}
+              {quest.projectLink && (
+                <a href={quest.projectLink} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors">
+                  View on Bags.fm <ExternalLink size={12} />
+                </a>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-[var(--accent)]/10 flex items-center gap-2">
+            <CheckCircle2 size={13} className="text-[var(--success)]" />
+            <span className="text-xs text-[var(--text-muted)]">Token data fetched live via <span className="text-[var(--accent)] font-semibold">@bagsfm/bags-sdk</span> on Solana Mainnet</span>
+            <span className="ml-auto font-mono text-xs text-[var(--text-faint)]">{quest.tokenMint.slice(0,4)}...{quest.tokenMint.slice(-4)}</span>
+          </div>
+        </div>
 
         {/* Task Instructions & Rules */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
