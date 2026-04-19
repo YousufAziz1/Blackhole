@@ -17,6 +17,9 @@ export function ProofSubmitForm({ quest, fanWallet, onSuccess, mode = 'web3' }: 
   const [proofData, setProofData] = useState('');
   const [optionalData, setOptionalData] = useState('');
   const [manualWallet, setManualWallet] = useState('');
+  const [dynamicTaskState, setDynamicTaskState] = useState<Record<string, { status: 'pending' | 'verifying' | 'verified' }>>({});
+  
+  // Legacy task state
   const [taskState, setTaskState] = useState({
     follow: false,
     like: false,
@@ -150,63 +153,166 @@ export function ProofSubmitForm({ quest, fanWallet, onSuccess, mode = 'web3' }: 
     }
   };
 
-  if (quest.mode === 'multi' && quest.tasks) {
-    const totalSelectedTasks = [quest.tasks.follow, quest.tasks.like, quest.tasks.retweet, quest.tasks.comment].filter(Boolean).length;
-    const completedTasks = [
-      quest.tasks.follow && taskState.follow,
-      quest.tasks.like && taskState.like,
-      quest.tasks.retweet && taskState.retweet,
-      quest.tasks.comment && taskState.comment,
-    ].filter(Boolean).length;
+  if (quest.mode === 'multi') {
+    // Determine if legacy or new campaign builder
+    const isLegacy = !quest.campaignTasks || quest.campaignTasks.length === 0;
 
-    const allChecked = completedTasks === totalSelectedTasks && totalSelectedTasks > 0;
+    let totalTasks = 0;
+    let completedCount = 0;
+    let allChecked = false;
+
+    if (isLegacy && quest.tasks) {
+      totalTasks = [quest.tasks.follow, quest.tasks.like, quest.tasks.retweet, quest.tasks.comment].filter(Boolean).length;
+      completedCount = [
+        quest.tasks.follow && taskState.follow,
+        quest.tasks.like && taskState.like,
+        quest.tasks.retweet && taskState.retweet,
+        quest.tasks.comment && taskState.comment,
+      ].filter(Boolean).length;
+      allChecked = completedCount === totalTasks && totalTasks > 0;
+    } else if (quest.campaignTasks) {
+      totalTasks = quest.campaignTasks.length;
+      completedCount = quest.campaignTasks.filter(t => dynamicTaskState[t.id]?.status === 'verified').length;
+      allChecked = completedCount === totalTasks && totalTasks > 0;
+    }
+    
+    const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+
+    const handleVerifyTask = (taskId: string) => {
+      setDynamicTaskState(prev => ({ ...prev, [taskId]: { status: 'verifying' } }));
+      
+      setTimeout(() => {
+        setDynamicTaskState(prev => ({ ...prev, [taskId]: { status: 'verified' } }));
+      }, 1500);
+    };
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="border border-[var(--border-active)] rounded-xl p-5 bg-[var(--bg-elevated)] space-y-4">
-          <div className="flex items-center justify-between mb-2">
-           <h3 className="font-semibold text-sm text-[var(--accent)] uppercase tracking-wide">🎯 Tasks to Complete</h3>
-           <span className="text-xs font-mono text-[var(--text-muted)] bg-black/40 px-2 py-1 rounded-lg border border-[var(--border-subtle)]">{completedTasks}/{totalSelectedTasks}</span>
-          </div>
-          
-          <div className="space-y-3">
-            {quest.tasks.follow && (
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.follow} onChange={e => setTaskState({...taskState, follow: e.target.checked})} />
-                <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                  Follow <a href={`https://x.com/${quest.tasks.followUsername?.replace('@', '')}`} target="_blank" rel="noreferrer" className="underline">{quest.tasks.followUsername || '@BagsAlpha'}</a>
-                </span>
-              </label>
-            )}
-            {quest.tasks.like && (
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.like} onChange={e => setTaskState({...taskState, like: e.target.checked})} />
-                <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                  Like this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
-                </span>
-              </label>
-            )}
-            {quest.tasks.retweet && (
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.retweet} onChange={e => setTaskState({...taskState, retweet: e.target.checked})} />
-                <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                  Retweet this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
-                </span>
-              </label>
-            )}
-            {quest.tasks.comment && (
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.comment} onChange={e => setTaskState({...taskState, comment: e.target.checked})} />
-                <div className="flex flex-col">
+        {isLegacy && quest.tasks ? (
+          // --- LEGACY RENDERER ---
+          <div className="border border-[var(--border-active)] rounded-xl p-5 bg-[var(--bg-elevated)] space-y-4">
+            <div className="flex items-center justify-between mb-2">
+             <h3 className="font-semibold text-sm text-[var(--accent)] uppercase tracking-wide">🎯 Tasks to Complete</h3>
+             <span className="text-xs font-mono text-[var(--text-muted)] bg-black/40 px-2 py-1 rounded-lg border border-[var(--border-subtle)]">{completedCount}/{totalTasks}</span>
+            </div>
+            
+            <div className="space-y-3">
+              {quest.tasks.follow && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
+                  <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.follow} onChange={e => setTaskState({...taskState, follow: e.target.checked})} />
                   <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
-                    Comment on this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
+                    Follow <a href={`https://x.com/${quest.tasks.followUsername?.replace('@', '')}`} target="_blank" rel="noreferrer" className="underline">{quest.tasks.followUsername || '@BagsAlpha'}</a>
                   </span>
-                  <span className="text-xs text-[var(--text-muted)] mt-1 bg-black/40 w-fit px-2 py-0.5 rounded border border-[var(--border-subtle)]">Reply: "{quest.tasks.commentText}"</span>
-                </div>
-              </label>
-            )}
+                </label>
+              )}
+              {quest.tasks.like && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
+                  <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.like} onChange={e => setTaskState({...taskState, like: e.target.checked})} />
+                  <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                    Like this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
+                  </span>
+                </label>
+              )}
+              {quest.tasks.retweet && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
+                  <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.retweet} onChange={e => setTaskState({...taskState, retweet: e.target.checked})} />
+                  <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                    Retweet this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
+                  </span>
+                </label>
+              )}
+              {quest.tasks.comment && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer group">
+                  <input type="checkbox" className="w-5 h-5 accent-[var(--accent)]" checked={taskState.comment} onChange={e => setTaskState({...taskState, comment: e.target.checked})} />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
+                      Comment on this <a href={quest.tasks.postUrl || '#'} target="_blank" rel="noreferrer" className="underline">Post</a>
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] mt-1 bg-black/40 w-fit px-2 py-0.5 rounded border border-[var(--border-subtle)]">Reply: "{quest.tasks.commentText}"</span>
+                  </div>
+                </label>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          // --- NEW GALXE STYLE RENDERER ---
+          <div className="border border-[var(--border-active)] rounded-xl p-5 bg-[var(--bg-elevated)] space-y-5">
+            <div className="flex items-center justify-between mb-2">
+             <h3 className="font-semibold text-sm text-[var(--accent)] uppercase tracking-wide">🏆 Journey Progress</h3>
+             <span className="text-xs font-mono font-bold text-[var(--text-primary)] bg-black/40 px-2 py-1 rounded-lg border border-[var(--border-subtle)]">{progressPercent}%</span>
+            </div>
+            
+            <div className="h-2 w-full bg-[var(--bg-surface)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+              <div 
+                className="h-full bg-gradient-to-r from-[var(--accent-2)] to-[var(--accent)] transition-all duration-700 ease-out relative"
+                style={{ width: `${progressPercent}%` }}
+              >
+                <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--text-muted)] font-medium text-right mt-1">{completedCount} of {totalTasks} tasks completed</p>
+
+            <div className="space-y-3 mt-4">
+              {quest.campaignTasks?.map((task, index) => {
+                const state = dynamicTaskState[task.id]?.status || 'pending';
+                
+                return (
+                  <div key={task.id} className={`flex flex-col gap-3 p-4 rounded-xl border transition-all duration-300 ${state === 'verified' ? 'bg-[var(--success)]/5 border-[var(--success)]/30 shadow-[0_0_15px_rgba(74,222,128,0.1)]' : 'bg-[var(--bg-surface)] border-[var(--border-subtle)] hover:border-[var(--accent)]/50'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {state === 'verified' ? (
+                          <div className="w-8 h-8 rounded-full bg-[var(--success)]/20 text-[var(--success)] flex items-center justify-center shrink-0">
+                            <CheckCircle2 size={16} className="animate-in zoom-in" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 font-mono text-xs font-bold">
+                            {index + 1}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-sm font-semibold ${state === 'verified' ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
+                            {task.instructions}
+                          </span>
+                          <span className="text-xs text-[var(--text-muted)] capitalize">{task.type} Task</span>
+                        </div>
+                      </div>
+                      
+                      <a 
+                        href={task.link} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                      >
+                        Go to Action ↗
+                      </a>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-[var(--border-subtle)]/50 flex justify-end">
+                      {state === 'verified' ? (
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--success)] py-1.5">
+                          <CheckCircle2 size={14} /> Completed
+                        </div>
+                      ) : state === 'verifying' ? (
+                        <div className="flex items-center gap-2 text-xs font-medium text-[var(--accent)] py-1.5 animate-pulse">
+                          <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+                          Verifying on-chain...
+                        </div>
+                      ) : (
+                        <button 
+                          type="button"
+                          onClick={() => handleVerifyTask(task.id)}
+                          className="px-4 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] hover:text-white transition-colors"
+                        >
+                          Verify Status
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {mode === 'simple' && (
           <div className="pt-2 border-t border-[var(--border-subtle)] mt-4">
@@ -223,27 +329,36 @@ export function ProofSubmitForm({ quest, fanWallet, onSuccess, mode = 'web3' }: 
 
         <div className="pt-4 border-t border-[var(--border-subtle)] mt-4">
           <div className="flex flex-col gap-3">
-            {!isVerified ? (
-              <Button 
-                type="button" 
-                variant="secondary" 
-                fullWidth 
-                onClick={handleVerify} 
-                disabled={verifying || completedTasks === 0} 
-                className={verifying ? "animate-pulse" : ""}
-              >
-                {verifying ? "Verifying..." : "🔍 Verify Action"}
-              </Button>
-            ) : (
-              <div className="flex items-center justify-center gap-2 p-3 bg-[var(--success)]/10 text-[var(--success)] rounded-xl border border-[var(--success)]/20 animate-in">
-                <CheckCircle2 size={18} />
-                <span className="font-semibold text-sm">Verification Successful ✅</span>
-              </div>
+            {isLegacy && quest.tasks && (
+              // Legacy verify button is only shown for old multi-task format
+              !isVerified ? (
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  fullWidth 
+                  onClick={handleVerify} 
+                  disabled={verifying || completedCount === 0} 
+                  className={verifying ? "animate-pulse" : ""}
+                >
+                  {verifying ? "Verifying..." : "🔍 Verify Action"}
+                </Button>
+              ) : (
+                <div className="flex items-center justify-center gap-2 p-3 bg-[var(--success)]/10 text-[var(--success)] rounded-xl border border-[var(--success)]/20 animate-in">
+                  <CheckCircle2 size={18} />
+                  <span className="font-semibold text-sm">Verification Successful ✅</span>
+                </div>
+              )
             )}
             
-            <p className="text-xs text-center text-[var(--text-muted)]">Complete all tasks to unlock rewards ⚡</p>
-            <Button fullWidth type="submit" loading={loading} disabled={!isVerified || !allChecked}>
-              Submit Proof
+            <p className="text-xs text-center text-[var(--text-muted)]">Complete all {totalTasks} tasks to unlock rewards ⚡</p>
+            <Button 
+              fullWidth 
+              type="submit" 
+              loading={loading} 
+              disabled={!allChecked || (isLegacy && quest.tasks && !isVerified)} // Legacy needs isVerified, Galxe needs allChecked
+              className={allChecked && (!isLegacy || isVerified) ? "shadow-[0_0_20px_var(--accent-glow)]" : ""}
+            >
+               {allChecked ? "Submit Journey Proof 🚀" : "Complete Tasks to Unlock"}
             </Button>
           </div>
         </div>

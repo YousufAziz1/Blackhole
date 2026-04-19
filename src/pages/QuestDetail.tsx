@@ -132,6 +132,22 @@ export function QuestDetail() {
           {quest.description}
         </p>
 
+        {/* Social Proof */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="flex -space-x-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="w-8 h-8 rounded-full border-2 border-[var(--bg-base)] bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] opacity-80" />
+            ))}
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--bg-base)] bg-[var(--bg-surface)] flex items-center justify-center text-[10px] font-bold text-[var(--text-muted)]">
+              +{socialProofCount}
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold flex items-center gap-1.5"><span className="text-[var(--accent)]">🔥 {socialProofCount} users</span> completed today</span>
+            {daysLeft > 0 && <span className="text-xs text-[var(--text-muted)]">⏳ Ends in {daysLeft} days</span>}
+          </div>
+        </div>
+
         {/* Bags.fm Live Verification Panel */}
         <div className="mb-8 rounded-2xl border border-[var(--accent)]/30 bg-gradient-to-r from-[var(--accent)]/5 to-[var(--accent-2)]/5 p-5 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,_rgba(108,99,255,0.08),transparent)] pointer-events-none" />
@@ -273,11 +289,7 @@ export function QuestDetail() {
           </Card>
         </div>
 
-        <div className="text-center mb-10">
-          <span className="inline-block px-4 py-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-sm text-[var(--text-secondary)] animate-in font-medium">
-            🔥 <strong className="text-white">{socialProofCount} users</strong> completed this quest today
-          </span>
-        </div>
+
 
         <div className="card-base p-6 md:p-8 bg-[var(--bg-surface)] rounded-2xl glow">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

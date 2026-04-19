@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Card, Button, Input } from './ui';
 import { AIQuestSuggest } from './AIQuestSuggest';
-import type { QuestIdea, Quest, QuestType } from '../types';
+import type { QuestIdea, Quest, QuestType, CampaignTask } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { saveQuest } from '../utils/storage';
 import toast from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 
 interface QuestFormProps {
   creatorWallet: string;
@@ -35,6 +35,7 @@ export function QuestForm({ creatorWallet, defaultTokenDetails, holderCount, edi
     questType: editQuest?.questType || 'follow_x' as QuestType,
     mode: editQuest?.mode || 'single',
     tasks: editQuest?.tasks || { follow: false, like: false, retweet: false, comment: false, postUrl: '', followUsername: '', commentText: '' },
+    campaignTasks: editQuest?.campaignTasks || [] as CampaignTask[],
     rewardAmount: editQuest?.rewardAmount || 0,
     maxCompletions: editQuest?.maxCompletions || 100,
     deadline: editQuest?.deadline || '',
@@ -42,12 +43,30 @@ export function QuestForm({ creatorWallet, defaultTokenDetails, holderCount, edi
     requirements: editQuest?.requirements || ({} as Record<string, any>)
   });
 
-  const handleTaskChange = (field: string, value: any) => {
+  const handleAddCampaignTask = () => {
     setFormData(prev => ({
       ...prev,
-      tasks: { ...prev.tasks, [field]: value }
+      campaignTasks: [
+        ...prev.campaignTasks,
+        { id: uuidv4(), type: 'follow', link: '', instructions: '' }
+      ]
     }));
   };
+
+  const handleUpdateCampaignTask = (id: string, field: keyof CampaignTask, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      campaignTasks: prev.campaignTasks.map(t => t.id === id ? { ...t, [field]: value } : t)
+    }));
+  };
+
+  const handleRemoveCampaignTask = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      campaignTasks: prev.campaignTasks.filter(t => t.id !== id)
+    }));
+  };
+
 
   const handleAISuggestion = (idea: QuestIdea) => {
     let defaultReqs: Record<string, any> = {};
@@ -242,26 +261,77 @@ export function QuestForm({ creatorWallet, defaultTokenDetails, holderCount, edi
               </>
             ) : (
               <div className="col-span-2 border border-[var(--border-active)] rounded-xl p-5 bg-[var(--bg-elevated)] space-y-4">
-                <h3 className="font-semibold text-sm text-[var(--text-primary)] mb-3">Tasks to Complete</h3>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-[var(--accent)] w-4 h-4 cursor-pointer" checked={formData.tasks.follow} onChange={e => handleTaskChange('follow', e.target.checked)} /> Follow on X</label>
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-[var(--accent)] w-4 h-4 cursor-pointer" checked={formData.tasks.like} onChange={e => handleTaskChange('like', e.target.checked)} /> Like Post</label>
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-[var(--accent)] w-4 h-4 cursor-pointer" checked={formData.tasks.retweet} onChange={e => handleTaskChange('retweet', e.target.checked)} /> Retweet</label>
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-[var(--accent)] w-4 h-4 cursor-pointer" checked={formData.tasks.comment} onChange={e => handleTaskChange('comment', e.target.checked)} /> Comment</label>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm text-[var(--accent)]">Multi-Task Campaign Builder</h3>
+                  <Button type="button" variant="secondary" size="sm" onClick={handleAddCampaignTask} icon={<Plus size={16}/>}>
+                    Add Task
+                  </Button>
                 </div>
+                
+                {formData.campaignTasks.length === 0 ? (
+                  <div className="text-center py-6 text-[var(--text-muted)] text-sm border border-dashed border-[var(--border-subtle)] rounded-xl">
+                    No tasks added yet. Click 'Add Task' to build your campaign.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {formData.campaignTasks.map((task, index) => (
+                      <div key={task.id} className="relative p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/50 transition-colors">
+                        <button type="button" onClick={() => handleRemoveCampaignTask(task.id)} className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[#f87171] transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                        
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-6 h-6 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center text-xs font-bold">{index + 1}</div>
+                          <select 
+                            className="bg-transparent text-sm font-semibold text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                            value={task.type}
+                            onChange={e => handleUpdateCampaignTask(task.id, 'type', e.target.value)}
+                          >
+                            <option className="bg-[#111118]" value="follow">Follow on X</option>
+                            <option className="bg-[#111118]" value="like">Like X Post</option>
+                            <option className="bg-[#111118]" value="retweet">Retweet</option>
+                            <option className="bg-[#111118]" value="comment">Comment</option>
+                            <option className="bg-[#111118]" value="custom">Custom Link</option>
+                          </select>
+                        </div>
 
-                {formData.tasks.follow && (
-                  <div className="pt-3 border-t border-[var(--border-subtle)]">
-                    <Input label="X Username to Follow" required placeholder="@username" value={formData.tasks.followUsername} onChange={e => handleTaskChange('followUsername', e.target.value)} />
+                        <div className="space-y-3">
+                          <Input 
+                            label={task.type === 'follow' ? "X Profile Link" : task.type === 'custom' ? "Target URL" : "X Post URL"} 
+                            required 
+                            placeholder="https://..." 
+                            value={task.link} 
+                            onChange={e => handleUpdateCampaignTask(task.id, 'link', e.target.value)} 
+                          />
+                          <Input 
+                            label="Instructions for Fan" 
+                            required 
+                            placeholder={task.type === 'follow' ? "Follow @username" : "Like this specific post"} 
+                            value={task.instructions} 
+                            onChange={e => handleUpdateCampaignTask(task.id, 'instructions', e.target.value)} 
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 
-                {(formData.tasks.like || formData.tasks.retweet || formData.tasks.comment) && (
-                  <div className="pt-3 border-t border-[var(--border-subtle)] space-y-4">
-                    <Input label="X Post URL" required placeholder="https://x.com/..." value={formData.tasks.postUrl} onChange={e => handleTaskChange('postUrl', e.target.value)} />
-                    {formData.tasks.comment && (
-                      <Input label="Comment Instruction text" required placeholder="Comment GM or LFG" value={formData.tasks.commentText} onChange={e => handleTaskChange('commentText', e.target.value)} />
-                    )}
+                {formData.campaignTasks.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
+                    <h4 className="text-xs uppercase tracking-widest text-[var(--text-muted)] mb-3 font-semibold">👀 Task Preview (As seen by fan)</h4>
+                    <div className="space-y-2 opacity-80 pointer-events-none">
+                      {formData.campaignTasks.map((t, i) => (
+                        <div key={t.id + 'preview'} className="flex items-center justify-between p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-base)]">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-medium text-[var(--text-primary)]">{t.instructions || `Task ${i+1}`}</span>
+                            <span className="text-xs text-[var(--accent)] font-mono truncate max-w-[200px]">{t.link || 'URL'}</span>
+                          </div>
+                          <div className="px-3 py-1.5 rounded-lg bg-[var(--bg-surface)] text-xs font-semibold text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                            Verify
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
