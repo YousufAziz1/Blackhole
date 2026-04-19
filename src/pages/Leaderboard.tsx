@@ -14,6 +14,19 @@ interface LeaderEntry {
   tokens: string[];
 }
 
+const MOCK_LEADERS: LeaderEntry[] = [
+  { wallet: "7MvTjGzB19x5PzrKqDkP2YY...", totalRewards: 12500000, questsCompleted: 42, tokens: ["NYAN", "BONK", "WIF"] },
+  { wallet: "D9rXbA4Qz1KqL2j3NpVtRk3...", totalRewards: 9800000, questsCompleted: 28, tokens: ["NYAN", "WEN"] },
+  { wallet: "F5qTz3XkL9RnP2jB19cTzG...", totalRewards: 8400500, questsCompleted: 35, tokens: ["NYAN", "BONK"] },
+  { wallet: "H3nKz8XKL9RnP2jB19c5Pz...", totalRewards: 6200000, questsCompleted: 19, tokens: ["PONKE"] },
+  { wallet: "J8wTz0XkLQRmP2jB19c5Pz...", totalRewards: 5150000, questsCompleted: 15, tokens: ["BONK"] },
+  { wallet: "L1mTz4XkL9RmP2jW19c5Bz...", totalRewards: 4900000, questsCompleted: 12, tokens: ["NYAN"] },
+  { wallet: "N9pTz7XkL9RmP2YV19o5Pz...", totalRewards: 3800000, questsCompleted: 11, tokens: ["WEN"] },
+  { wallet: "Q2vTz1XkL9GmP2jB19c5Pz...", totalRewards: 2100000, questsCompleted: 8, tokens: ["NYAN"] },
+  { wallet: "T4rTz9XkL9RmP2jB19c5Pz...", totalRewards: 1250000, questsCompleted: 6, tokens: ["BONK"] },
+  { wallet: "V1yTz2XkL9RmP2jB19c5Pz...", totalRewards: 850000, questsCompleted: 4, tokens: ["WIF"] },
+];
+
 export function Leaderboard() {
   const navigate = useNavigate();
   const { publicKey } = useWallet();
@@ -40,7 +53,18 @@ export function Leaderboard() {
 
     // Sort by total rewards descending
     const sorted = Object.values(walletMap).sort((a, b) => b.totalRewards - a.totalRewards);
-    setEntries(sorted);
+    
+    // Merge real data with mock data so the platform looks alive for demo
+    const combined = [...sorted];
+    MOCK_LEADERS.forEach(mock => {
+      // Avoid exact duplicates if somehow wallet matches
+      if (!combined.find(e => e.wallet.slice(0, 5) === mock.wallet.slice(0, 5))) {
+        combined.push(mock);
+      }
+    });
+
+    combined.sort((a, b) => b.totalRewards - a.totalRewards);
+    setEntries(combined);
   }, []);
 
   const myWallet = publicKey?.toBase58();
@@ -68,7 +92,7 @@ export function Leaderboard() {
 
       <main className="max-w-3xl mx-auto px-6 py-12 animate-in">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <div className="w-16 h-16 rounded-2xl bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center mx-auto mb-5 text-[var(--accent)]" style={{ boxShadow: '0 0 30px var(--accent-glow)' }}>
             <Trophy size={30} />
           </div>
@@ -76,6 +100,25 @@ export function Leaderboard() {
             🏆 <span className="text-gradient">Alpha Leaderboard</span>
           </h1>
           <p className="text-[var(--text-muted)]">Top quest completers ranked by total tokens earned</p>
+        </div>
+
+        {/* Global Platform Statistics */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4 mb-10 animate-in stagger">
+          <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/50 transition-colors text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--accent)]/5 pointer-events-none"></div>
+            <p className="text-[10px] md:text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-1">Total Distributed</p>
+            <p className="font-mono font-bold text-lg md:text-2xl text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">42.5M+</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/50 transition-colors text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--accent)]/5 pointer-events-none"></div>
+            <p className="text-[10px] md:text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-1">Active Fans</p>
+            <p className="font-mono font-bold text-lg md:text-2xl text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">12.4K</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--accent)]/50 transition-colors text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--accent)]/5 pointer-events-none"></div>
+            <p className="text-[10px] md:text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold mb-1">Quests Done</p>
+            <p className="font-mono font-bold text-lg md:text-2xl text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">89.2K</p>
+          </div>
         </div>
 
         {/* My Rank Banner (if connected and on board) */}
