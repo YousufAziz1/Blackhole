@@ -1,5 +1,15 @@
 export type QuestType = 'follow_x' | 'hold_tokens' | 'share_post' | 'join_telegram' | 'create_content';
 
+export type CampaignTaskType = 'follow' | 'like' | 'retweet' | 'comment' | 'custom';
+
+export interface CampaignTask {
+  id: string;
+  type: CampaignTaskType;
+  link: string;
+  instructions: string;
+}
+
+/** @deprecated use campaignTasks[] instead */
 export interface MultiTaskConfig {
   follow: boolean;
   like: boolean;
@@ -21,7 +31,8 @@ export interface Quest {
   title: string;
   description: string;
   mode?: 'single' | 'multi';
-  tasks?: MultiTaskConfig;
+  tasks?: MultiTaskConfig; // legacy — kept for backward compat
+  campaignTasks?: CampaignTask[]; // Galxe-style dynamic task list
   rewardAmount: number;
   maxCompletions: number;
   currentCompletions: number;
